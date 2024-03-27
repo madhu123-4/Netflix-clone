@@ -14,21 +14,14 @@
   <p align="center">Home Page</p>
 </div>
 
-# **Youtube Video for step by step Demonstration!**
-[![Video Tutorial](https://img.youtube.com/vi/g8X5AoqCJHc/0.jpg)](https://youtu.be/g8X5AoqCJHc)
-
-
-## Susbcribe:
-[https://www.youtube.com/@cloudchamp?
-](https://www.youtube.com/@cloudchamp?sub_confirmation=1)
 
 # Deploy Netflix Clone on Cloud using Jenkins - DevSecOps Project!
 
 ### **Phase 1: Initial Setup and Deployment**
 
-**Step 1: Launch EC2 (Ubuntu 22.04):**
+**Step 1: Launch EC2 (Redhat 9):**
 
-- Provision an EC2 instance on AWS with Ubuntu 22.04.
+- Provision an EC2 instance on AWS with Redhat 9.
 - Connect to the instance using SSH.
 
 **Step 2: Clone the Code:**
@@ -37,7 +30,7 @@
 - Clone your application's code repository onto the EC2 instance:
     
     ```bash
-    git clone https://github.com/N4si/DevSecOps-Project.git
+    git clone https://github.com/madhu123-4/Netflix-clone.git
     ```
     
 
@@ -46,12 +39,31 @@
 - Set up Docker on the EC2 instance:
     
     ```bash
-    
-    sudo apt-get update
-    sudo apt-get install docker.io -y
-    sudo usermod -aG docker $USER  # Replace with your system's username, e.g., 'ubuntu'
-    newgrp docker
-    sudo chmod 777 /var/run/docker.sock
+    #Pre-requisite : Install JAVA
+     sudo su
+     yum install java-11* -y
+     #Upgrade the repository(optional)
+     yum update -y
+     #Configure the repository - https://download.docker.com/linux/rhel/
+     vi /etc/yum.repos.d/docker-ce.repo
+     [docker-ce-stable]
+     name=Docker CE Stable - $basearch
+     baseurl=https://download.docker.com/linux/centos/$releasever/$basearch/stable
+     enabled=1
+     gpgcheck=1
+     gpgkey=https://download.docker.com/linux/centos/gpg
+
+    #Install Docker Package
+    yum install docker-ce docker-ce-cli containerd.io  -y 
+
+    #Enable and start docker service
+    systemctl enable docker
+    systemctl start docker
+    #Start docker service
+    systemctl status docker
+   # Verify Docker is running :
+   docker version
+   docker info
     ```
     
 - Build and run your application using Docker containers:
@@ -99,11 +111,15 @@ docker build --build-arg TMDB_V3_API_KEY=<your-api-key> -t netflix .
         
         To install Trivy:
         ```
-        sudo apt-get install wget apt-transport-https gnupg lsb-release
-        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-        echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
-        sudo apt-get update
-        sudo apt-get install trivy        
+        $ sudo vim /etc/yum.repos.d/trivy.repo
+        [trivy]
+        name=Trivy repository
+        baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$releasever/$basearch/
+        gpgcheck=0
+        enabled=1
+        $ sudo yum -y update
+        $ sudo yum -y install trivy
+        
         ```
         
         to scan image using trivy
@@ -204,7 +220,7 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/N4si/DevSecOps-Project.git'
+                git branch: 'main', url: 'https://github.com/madhu123-4/Netflix-clone.git'
             }
         }
         stage("Sonarqube Analysis") {
@@ -294,7 +310,7 @@ pipeline{
         }
         stage('Checkout from Git'){
             steps{
-                git branch: 'main', url: 'https://github.com/N4si/DevSecOps-Project.git'
+                git branch: 'main', url: 'https://github.com/madhu123-4/Netflix-clone.git'
             }
         }
         stage("Sonarqube Analysis "){
@@ -333,20 +349,20 @@ pipeline{
                 script{
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
                        sh "docker build --build-arg TMDB_V3_API_KEY=<yourapikey> -t netflix ."
-                       sh "docker tag netflix nasi101/netflix:latest "
-                       sh "docker push nasi101/netflix:latest "
+                       sh "docker tag netflix madhu123-4/netflix:latest "
+                       sh "docker push madhu123-4/netflix:latest "
                     }
                 }
             }
         }
         stage("TRIVY"){
             steps{
-                sh "trivy image nasi101/netflix:latest > trivyimage.txt" 
+                sh "trivy image madhu123-4/netflix:latest > trivyimage.txt" 
             }
         }
         stage('Deploy to container'){
             steps{
-                sh 'docker run -d --name netflix -p 8081:80 nasi101/netflix:latest'
+                sh 'docker run -d --name netflix -p 8081:80 madhu123-4/netflix:latest'
             }
         }
     }
