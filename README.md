@@ -23,6 +23,9 @@
 
 - Provision an EC2 instance on AWS with Redhat 9.
 - Connect to the instance using SSH.
+- install t2.large instance with 25 GB volume
+- Attach a elastic IP address (Static Public Ip adress)
+  Allocate Elastic Ip address---Allocate--Name the IP address(Netflix-eip)---Allocate Elastic Ip address--Choose the instance--Associate
 
 **Step 2: Clone the Code:**
 
@@ -30,6 +33,8 @@
 - Clone your application's code repository onto the EC2 instance:
     
     ```bash
+    #install The Git
+    yum install git -y
     git clone https://github.com/madhu123-4/Netflix-clone.git
     ```
     
