@@ -70,9 +70,82 @@
    docker version
    docker info
     ```
-    
+ Certainly! Let's break down the Dockerfile's first stage, which is responsible for building the application:
+
+```Dockerfile
+# Define the base image for this stage
+FROM node:16.17.0-alpine as builder
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the package.json and yarn.lock files into the container
+COPY ./package.json .
+COPY ./yarn.lock .
+
+# Install the project dependencies
+RUN yarn install
+
+# Copy the rest of the application code into the container
+COPY . .
+
+# Set the build argument TMDB_V3_API_KEY as an environment variable
+ARG TMDB_V3_API_KEY
+ENV VITE_APP_TMDB_V3_API_KEY=${TMDB_V3_API_KEY}
+
+# Set the environment variable for the API endpoint URL
+ENV VITE_APP_API_ENDPOINT_URL="https://api.themoviedb.org/3"
+
+# Build the application
+RUN yarn build
+```
+
+1. **`FROM node:16.17.0-alpine as builder`**: This line specifies the base image for this stage. It uses Node.js 16.17.0-alpine, which is a lightweight Node.js image based on Alpine Linux, optimized for size.
+
+2. **`WORKDIR /app`**: Sets the working directory inside the container to `/app`. This is where the application code will be copied and where subsequent commands will be executed.
+
+3. **`COPY ./package.json .` and `COPY ./yarn.lock .`**: Copies the `package.json` and `yarn.lock` files from the host machine (your local file system) into the container. These files are used for dependency management.
+
+4. **`RUN yarn install`**: Installs the project dependencies using Yarn. This command reads the `package.json` and `yarn.lock` files and installs the necessary packages into the container.
+
+5. **`COPY . .`**: Copies the rest of the application code (excluding `package.json` and `yarn.lock`) into the container. This includes all source code, configuration files, and any other assets needed to build the application.
+
+6. **`ARG TMDB_V3_API_KEY` and `ENV VITE_APP_TMDB_V3_API_KEY=${TMDB_V3_API_KEY}`**: Defines an argument `TMDB_V3_API_KEY` and sets it as an environment variable `VITE_APP_TMDB_V3_API_KEY`. This allows you to pass an API key to the container at build time, which can be used in your application code.
+
+7. **`ENV VITE_APP_API_ENDPOINT_URL="https://api.themoviedb.org/3"`**: Sets the `VITE_APP_API_ENDPOINT_URL` environment variable to `https://api.themoviedb.org/3`. This is the base URL for the API endpoint used in the application.
+
+8. **`RUN yarn build`**: Builds the application using the build script defined in your `package.json` file. This command is typically responsible for transpiling code, bundling assets, and preparing the application for deployment.
+
+Overall, this stage sets up the build environment, installs dependencies, copies the application code, sets environment variables, and builds the application, preparing it for the next stage in the Dockerfile.
+ ```bash
+FROM nginx:stable-alpine
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=builder /app/dist .
+EXPOSE 80
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
+```
+
+This Dockerfile sets up a multi-stage build for a web application. Here's a detailed explanation of each instruction:
+
+1. **`FROM nginx:stable-alpine`**:
+   - This sets the base image for the build stage. It uses the `nginx:stable-alpine` image, which is a lightweight Nginx image based on Alpine Linux. Alpine Linux is known for its small size and efficiency, making it a popular choice for Docker images.
+
+2. **`WORKDIR /usr/share/nginx/html`**:
+   - Sets the working directory inside the container where the Nginx server will serve files from. In this case, it's set to `/usr/share/nginx/html`, which is the default directory for serving static content in Nginx.
+
+3. **`RUN rm -rf ./*`**:
+   - This instruction removes all existing files and directories in the Nginx HTML directory. It ensures that the directory is clean before copying files from the builder stage. This step is not always necessary but can be used to ensure a clean state.
+
+4. **`COPY --from=builder /app/dist .`**:
+   - Copies files from the `builder` stage into the current directory (`/usr/share/nginx/html`). The `--from=builder` flag specifies that the files should be copied from the previous build stage named `builder`. The `builder` stage likely contains the built static assets of a web application.
+
+5. **`EXPOSE 80`**:
+   - Informs Docker that the container will listen on port 80 at runtime. This does not actually publish the port, but it serves as documentation for anyone running the container to know which ports to publish or map.
+
+6. **`ENTRYPOINT ["nginx", "-g", "daemon off;"]`**:
+   - Sets the default command to run when the container starts. It starts the Nginx server in the foreground (`daemon off;`). This is a common practice for Docker containers, as it allows Docker to manage the process and keeps the container running as long as the Nginx process is active.
 - Build and run your application using Docker containers:
-    
     ```bash
     docker build -t netflix .
     docker run -d --name netflix -p 8081:80 netflix:latest
@@ -100,6 +173,13 @@ docker build --build-arg TMDB_V3_API_KEY=<your-api-key> -t netflix .
 ```
 
 **Phase 2: Security**
+- SonarQube is an code inspection tool or static analysis tool for code quality checks to detect the bugs and vulnerabilities in the early stage of development.
+- SonarQube supports multiple languages like java, go, ruby, dot net, python,xml etc
+- SonarQube detects all the duplication of code.
+- SonarQube also suggest what to improve and how to improve the code in case of bugs and vulnerabilities issues via set of rules.
+- SonarQube provides an criteria to set the project level settings for code quality checks.
+- SonarQube also has an proper user and access management feature to track the issues.
+
 
 1. **Install SonarQube and Trivy:**
     - Install SonarQube and Trivy on the EC2 instance to scan for vulnerabilities.
@@ -113,18 +193,15 @@ docker build --build-arg TMDB_V3_API_KEY=<your-api-key> -t netflix .
         To access: 
         
         publicIP:9000 (by default username & password is admin)
-        
-        To install Trivy:
-        ```
-        $ sudo vim /etc/yum.repos.d/trivy.repo
+        ``` 
+        sudo vim /etc/yum.repos.d/trivy.repo
         [trivy]
         name=Trivy repository
         baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$releasever/$basearch/
         gpgcheck=0
         enabled=1
-        $ sudo yum -y update
-        $ sudo yum -y install trivy
-        
+        sudo yum -y update
+        sudo yum -y install trivy
         ```
         
         to scan image using trivy
@@ -144,23 +221,29 @@ docker build --build-arg TMDB_V3_API_KEY=<your-api-key> -t netflix .
     Install Java
     
     ```bash
-    sudo apt update
-    sudo apt install fontconfig openjdk-17-jre
-    java -version
-    openjdk version "17.0.8" 2023-07-18
-    OpenJDK Runtime Environment (build 17.0.8+7-Debian-1deb12u1)
-    OpenJDK 64-Bit Server VM (build 17.0.8+7-Debian-1deb12u1, mixed mode, sharing)
-    
-    #jenkins
-    sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-    https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-    echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-    https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-    /etc/apt/sources.list.d/jenkins.list > /dev/null
-    sudo apt-get update
-    sudo apt-get install jenkins
-    sudo systemctl start jenkins
-    sudo systemctl enable jenkins
+    #Pre-requsite:
+    #Install java and wget 
+     sudo su
+     yum install java-11* -y
+     yum install wget -y
+     # Download the rpm file
+     wget https://archives.jenkins-ci.org/redhat-stable/jenkins-2.426.2-1.1.noarch.rpm
+     #Download and install key for connecting jenkins repository 
+     rpm --import http://pkg.jenkins-ci.org/redhat-rc/jenkins-ci.org.key
+     #Install rpm  & verify rpm package
+     rpm -ivh jenkins-2.426.2-1.1.noarch.rpm
+     rpm -qa | grep -i jenkins
+     #Start Jenkins service :
+          systemctl daemon-reload
+          systemctl enable jenkins  
+          systemctl start jenkins  
+          systemctl status jenkins   
+      #Note :
+          systemctl stop jenkins  
+          systemctl restart jenkins
+     #Hit URL in Browser :
+     http:// public-ip:8080
+
     ```
     
     - Access Jenkins in a web browser using the public IP of your EC2 instance.
